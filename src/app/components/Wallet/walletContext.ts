@@ -55,8 +55,9 @@ export const useStoreWallet = create<WalletState>()(set => ({
     disconnectWallet: () => {
         const wallet = useStoreWallet.getState().StarknetWalletObject;
         try {
-            if (wallet && typeof (wallet as { disconnect?: () => Promise<void> }).disconnect === "function") {
-                void (wallet as { disconnect: () => Promise<void> }).disconnect();
+            const maybeDisconnect = wallet as unknown as { disconnect?: () => Promise<void> };
+            if (typeof maybeDisconnect.disconnect === "function") {
+                void maybeDisconnect.disconnect();
             }
         } catch {
             /* wallet may already be disconnected */
