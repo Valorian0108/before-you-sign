@@ -1,82 +1,107 @@
 "use client";
 
-import type { CSSProperties } from 'react';
 import styles from './uni.module.css';
 import SelectWallet from './components/client/WalletHandle/SelectWallet';
 import WalletAccountV6Tag from './components/client/WalletHandle/WalletAccountV6Tag';
-import { StrkCoin, BtcCoin, EthCoin, UsdcCoin, ZecCoin } from './components/TokenIcons';
 
-// Scattered, blurred token coins on the sides of the page (background ambience).
-type BgToken = {
-  Coin: (p: { size?: number }) => React.ReactElement;
-  pos: CSSProperties;
-  size: number;
-  blur: number;
-  opacity: number;
-};
-const BG_TOKENS: BgToken[] = [
-  // Left edge
-  { Coin: StrkCoin, pos: { top: '30%', left: '3%' }, size: 116, blur: 5, opacity: 0.55 },
-  { Coin: BtcCoin, pos: { top: '38%', left: '18%' }, size: 92, blur: 4, opacity: 0.5 },
-  { Coin: ZecCoin, pos: { top: '64%', left: '9%' }, size: 140, blur: 6, opacity: 0.5 },
-  { Coin: EthCoin, pos: { top: '11%', left: '22%' }, size: 84, blur: 4, opacity: 0.5 },
-  { Coin: UsdcCoin, pos: { top: '86%', left: '20%' }, size: 104, blur: 5, opacity: 0.5 },
-  // Right edge
-  { Coin: EthCoin, pos: { top: '7%', right: '18%' }, size: 128, blur: 5, opacity: 0.55 },
-  { Coin: BtcCoin, pos: { top: '12%', right: '4%' }, size: 96, blur: 4, opacity: 0.5 },
-  { Coin: StrkCoin, pos: { top: '54%', right: '6%' }, size: 132, blur: 6, opacity: 0.55 },
-  { Coin: UsdcCoin, pos: { top: '76%', right: '9%' }, size: 104, blur: 5, opacity: 0.5 },
-  { Coin: ZecCoin, pos: { top: '88%', right: '20%' }, size: 100, blur: 5, opacity: 0.48 },
-  // Center accents (top & bottom)
-  { Coin: BtcCoin, pos: { top: '5%', left: '42%' }, size: 116, blur: 5, opacity: 0.45 },
-  { Coin: StrkCoin, pos: { bottom: '-1%', left: '48%' }, size: 124, blur: 6, opacity: 0.48 },
-];
+function BotanicalMark() {
+  return (
+    <svg
+      className={styles.botanical}
+      viewBox="0 0 200 280"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M100 260V80"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M100 120C72 100 48 88 32 72M100 100C128 82 152 68 168 52M100 160C70 148 52 132 40 112M100 155C130 142 148 126 160 108M100 200C78 192 62 178 52 162M100 198C122 188 138 174 148 158"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+      />
+      <ellipse cx="32" cy="72" rx="14" ry="22" transform="rotate(-35 32 72)" stroke="currentColor" strokeWidth="1.25" />
+      <ellipse cx="168" cy="52" rx="14" ry="22" transform="rotate(35 168 52)" stroke="currentColor" strokeWidth="1.25" />
+      <ellipse cx="40" cy="112" rx="12" ry="20" transform="rotate(-28 40 112)" stroke="currentColor" strokeWidth="1.25" />
+      <ellipse cx="160" cy="108" rx="12" ry="20" transform="rotate(28 160 108)" stroke="currentColor" strokeWidth="1.25" />
+      <ellipse cx="52" cy="162" rx="11" ry="18" transform="rotate(-22 52 162)" stroke="currentColor" strokeWidth="1.25" />
+      <ellipse cx="148" cy="158" rx="11" ry="18" transform="rotate(22 148 158)" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  );
+}
 
 export default function Page() {
   return (
     <div className={styles.page}>
-      <div className={styles.aurora} aria-hidden>
-        {BG_TOKENS.map((t, i) => (
-          <span
-            key={i}
-            className={styles.tok}
-            style={{ ...t.pos, filter: `blur(${t.blur}px)`, opacity: t.opacity }}
-          >
-            <t.Coin size={t.size} />
-          </span>
-        ))}
-      </div>
-
       <nav className={styles.nav}>
         <div className={styles.brand}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/tokens/strk20.png" alt="STRK20" className={styles.brandImg} />
+          <span className={styles.brandSlash}>/</span>
+          <span className={styles.brandName}>STRK20</span>
+          <span className={styles.brandTag}>privacy preview</span>
         </div>
         <SelectWallet variant="nav" />
       </nav>
 
-      <header className={styles.hero}>
-        <h1 className={styles.heroTitle}>
-          See what stays
-          <br />
-          <span className={styles.heroAccent}>private</span>
-        </h1>
-        <p className={styles.heroSub}>
-          Preview exactly what a STRK20 transaction reveals — and what it
-          won&apos;t — before you sign.
-        </p>
-      </header>
+      <div className={styles.dashboard}>
+        <header className={styles.editorialHero}>
+          <div className={styles.heroCopy}>
+            <p className={styles.dispatch}>■ A privacy dispatch</p>
+            <h1 className={styles.heroTitle}>
+              See what stays
+              <br />
+              <span className={styles.heroAccent}>private</span>
+            </h1>
+            <p className={styles.heroBody}>
+              For Starknet users who want shielded STRK but don&apos;t yet understand
+              what the chain actually reveals. Preview every action before you sign —
+              honestly, with the compliance layer included.
+            </p>
+            <p className={styles.heroSign}>— before you sign</p>
+          </div>
+          <div className={styles.heroArt}>
+            <BotanicalMark />
+          </div>
+        </header>
 
-      <main>
-        <WalletAccountV6Tag />
-      </main>
+        <div className={styles.dashboardGrid}>
+          <aside className={styles.contextCol}>
+            <section className={styles.contextCard}>
+              <h2 className={styles.contextTitle}>How it works</h2>
+              <ol className={styles.contextSteps}>
+                <li>Configure a shield, send, or unshield</li>
+                <li>Open the privacy preview — what&apos;s public, hidden, conditional</li>
+                <li>Sign in Ready only when you understand the tradeoffs</li>
+              </ol>
+            </section>
+            <section className={styles.contextCard}>
+              <h2 className={styles.contextTitle}>What we never claim</h2>
+              <ul className={styles.contextList}>
+                <li>Shielding links your public wallet to the pool</li>
+                <li>Unshielding reveals exit address and amount</li>
+                <li>Viewing keys exist for compliance — shown in every preview</li>
+              </ul>
+            </section>
+          </aside>
+
+          <main className={styles.actionCol}>
+            <WalletAccountV6Tag />
+          </main>
+        </div>
+      </div>
 
       <footer className={styles.footer}>
-        <a href="https://github.com/PhilippeR26/Starknet-WalletAccount" target="_blank" rel="noreferrer">
-          Repo
+        <a href="https://github.com/Valorian0108/before-you-sign" target="_blank" rel="noreferrer">
+          Repository
         </a>
         <span className={styles.footerDot}>·</span>
-        <span>Powered by Starknet.js v10.4.0</span>
+        <span>Starknet.js v10.4.0</span>
+        <span className={styles.footerDot}>·</span>
+        <span>Garden × Starknet</span>
       </footer>
     </div>
   );
