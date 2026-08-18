@@ -444,6 +444,91 @@
   color: var(--muted);
 }
 .subMono { font-family: var(--font-mono-ui), monospace; }
+.feeHint { margin-top: 10px; font-size: 12px; color: var(--muted); }
+.recipientField { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.recipientLabel { display: block; font-size: 13px; font-weight: 600; color: var(--pink-text); margin-bottom: 8px; }
+.recipientInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-family: var(--font-mono-ui), monospace;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+}
+.recipientInput:focus { border-color: var(--pink-text); }
+.recipientInput:disabled { opacity: 0.5; cursor: not-allowed; }
+.recipientSelfBtn {
+  margin-top: 8px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pink-text);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.recipientSelfBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.submissionBox {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+.submissionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.submissionTitle { font-weight: 600; font-size: 14px; color: var(--ink); }
+.submissionCount { font-size: 12px; color: var(--muted); font-family: var(--font-mono-ui), monospace; }
+.submissionList { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.submissionItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.submissionAction {
+  text-transform: capitalize;
+  font-weight: 500;
+  min-width: 56px;
+}
+.submissionNet {
+  font-size: 11px;
+  font-family: var(--font-mono-ui), monospace;
+  color: var(--muted);
+  min-width: 52px;
+}
+.submissionHash {
+  color: var(--pink-text);
+  text-decoration: none;
+  font-family: var(--font-mono-ui), monospace;
+  font-size: 12px;
+}
+.submissionHash:hover { text-decoration: underline; }
+.submissionCopy {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--inset);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--ink);
+}
+.submissionCopy:hover { border-color: var(--pink-text); }
 
 .feeRow {
   display: flex;

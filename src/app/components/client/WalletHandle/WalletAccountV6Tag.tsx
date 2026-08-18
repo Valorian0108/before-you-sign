@@ -17,6 +17,13 @@ import {
   STRK20_NETWORKS,
   type Strk20NetworkIndex,
 } from "@/utils/network";
+import {
+  loadRecordedTxs,
+  mainnetHashes,
+  recordTx,
+  strk20JsonSnippet,
+  type RecordedTx,
+} from "@/utils/submissionTxs";
 
 // DEMO: all actions use one token (STRK). Swap constants.addrSTRK for your token,
 // or make the token a user selection.
@@ -47,6 +54,20 @@ function parseStrkInput(input: string): bigint | null {
 
 function amountLabelFromWei(wei: bigint): string {
   return `${fmtStrk(wei)} STRK`;
+}
+
+function parseRecipientAddress(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  try {
+    return validateAndParseAddress(trimmed);
+  } catch {
+    return null;
+  }
+}
+
+function shortAddr(addr: string): string {
+  return addr.length <= 13 ? addr : `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
 // Shorten a felt/hex for display, like the wallet address ("0x1dc5a1c...1927a").
@@ -217,11 +238,18 @@ export default function WalletAccountV6Tag() {
   const [tab, setTab] = useState<TabKey>("shield");
   const [shieldAmount, setShieldAmount] = useState("10");
   const [sendAmount, setSendAmount] = useState("1");
+  const [sendRecipient, setSendRecipient] = useState("");
   const [unshieldAmount, setUnshieldAmount] = useState("1");
   const [preview, setPreview] = useState<PrivacySimulation | null>(null);
   const [pendingRun, setPendingRun] = useState<(() => Promise<void>) | null>(null);
   const [confirmingPreview, setConfirmingPreview] = useState(false);
   const [walletBusy, setWalletBusy] = useState(false);
+  const [recordedTxs, setRecordedTxs] = useState<RecordedTx[]>([]);
+  const [copiedJson, setCopiedJson] = useState(false);
+
+  useEffect(() => {
+    setRecordedTxs(loadRecordedTxs());
+  }, []);
 
   const getWAchainId = () => {
     myWalletAccount?.provider
@@ -256,7 +284,8 @@ export default function WalletAccountV6Tag() {
   async function submit(
     actions: WALLET_API.STRK20_ACTION[],
     setResult: (r: ActionResult) => void,
-    amountLabel: string
+    amountLabel: string,
+    actionName: string
   ): Promise<string | undefined> {
     if (!myWalletAccount) {
       setResult(errorResult("No WalletAccount available."));
@@ -297,7 +326,17 @@ export default function WalletAccountV6Tag() {
         retries: 400,
         retryInterval: 3000,
       });
-      setResult(receiptToResult(txR, txH, amountLabel));
+      const result = receiptToResult(txR, txH, amountLabel);
+      setResult(result);
+      if (result.status === "ok" && networkName) {
+        setRecordedTxs(
+          recordTx({
+            hash: txH,
+            action: actionName,
+            network: networkName as "MAINNET" | "SEPOLIA",
+          })
+        );
+      }
     } catch (error: any) {
       setResult({
         status: "error",
@@ -376,7 +415,7 @@ export default function WalletAccountV6Tag() {
     const actions: WALLET_API.STRK20_ACTION[] = [
       { type: "deposit", token: TOKEN, amount: num.toHex(amountWei) },
     ];
-    await submit(actions, setResultShield, label);
+    await submit(actions, setResultShield, label, "shield");
   };
 
   const handleUnshield = async (amountWei: bigint) => {
@@ -394,7 +433,7 @@ export default function WalletAccountV6Tag() {
         recipient: connectedAddress,
       },
     ];
-    await submit(actions, setResultUnshield, label);
+    await submit(actions, setResultUnshield, label, "unshield");
   };
 
   const walletAddr = myWalletAccount?.address
@@ -443,14 +482,22 @@ export default function WalletAccountV6Tag() {
       setResultTransfer(errorResult("Enter a valid STRK amount (e.g. 1 or 0.5)."));
       return;
     }
+    const recipient = parseRecipientAddress(sendRecipient);
+    if (!recipient) {
+      setResultTransfer(errorResult("Enter a valid Starknet recipient address (0x…)."));
+      return;
+    }
+    const isSelf =
+      connectedAddress !== "" &&
+      recipient.toLowerCase() === connectedAddress.toLowerCase();
     openPrivacyPreview(
       simulatePrivacy({
         action: "transfer",
         amountLabel: amountLabelFromWei(amountWei),
-        recipientShort: shortWallet,
-        isSelfTransfer: true,
+        recipientShort: shortAddr(recipient),
+        isSelfTransfer: isSelf,
       }),
-      () => handleSelfTransfer(amountWei)
+      () => handleTransfer(amountWei, recipient)
     );
   };
 
@@ -470,22 +517,22 @@ export default function WalletAccountV6Tag() {
     );
   };
 
-  const handleSelfTransfer = async (amountWei: bigint) => {
+  const handleTransfer = async (amountWei: bigint, recipient: string) => {
     setResultTransfer(null);
-    if (!connectedAddress) {
-      setResultTransfer(errorResult("Connect a wallet first (recipient = connected account)."));
+    if (!myWalletAccount) {
+      setResultTransfer(errorResult("Connect a wallet first."));
       return;
     }
-    const label = amountLabelFromWei(amountWei);
+    const label = `${amountLabelFromWei(amountWei)} → ${shortAddr(recipient)}`;
     const actions: WALLET_API.STRK20_ACTION[] = [
       {
         type: "transfer",
         token: TOKEN,
         amount: num.toHex(amountWei),
-        recipient: connectedAddress,
+        recipient,
       },
     ];
-    await submit(actions, setResultTransfer, label);
+    await submit(actions, setResultTransfer, label, "transfer");
   };
 
   // Complex action - echo invoke round-trip: withdraw 5 STRK to the helper, create an
@@ -510,7 +557,7 @@ export default function WalletAccountV6Tag() {
         calldata: [num.toHex(TOKEN), "${poolAddress}", "${openNoteIds[0]}"],
       },
     ];
-    const txH = await submit(actions, setResultComplex, "5 STRK");
+    const txH = await submit(actions, setResultComplex, "5 STRK", "echo");
     if (!txH) return;
     setVerdictComplex({
       ok: false,
@@ -667,9 +714,9 @@ export default function WalletAccountV6Tag() {
       onAmountChange: setShieldAmount,
     },
     send: {
-      label: "You're sending - to self",
+      label: "You're sending privately",
       token: "STRK",
-      hint: "Private in-pool transfer",
+      hint: "In-pool transfer — recipient must be STRK20-registered",
       cta: "Preview & send",
       onRun: requestTransferPreview,
       result: resultTransfer,
@@ -762,6 +809,37 @@ export default function WalletAccountV6Tag() {
           <span>{active.hint}</span>
           <span className={styles.subMono}>{shortWallet}</span>
         </div>
+        {active.editableAmount ? (
+          <div className={styles.feeHint}>Each shielded action costs ~4 STRK in network fees.</div>
+        ) : null}
+        {tab === "send" && (
+          <div className={styles.recipientField}>
+            <label className={styles.recipientLabel} htmlFor="send-recipient">
+              Recipient address
+            </label>
+            <input
+              id="send-recipient"
+              className={styles.recipientInput}
+              type="text"
+              placeholder="0x…"
+              value={sendRecipient}
+              onChange={(e) => setSendRecipient(e.target.value)}
+              disabled={actionBusy}
+              spellCheck={false}
+              autoComplete="off"
+            />
+            {connectedAddress ? (
+              <button
+                type="button"
+                className={styles.recipientSelfBtn}
+                disabled={actionBusy}
+                onClick={() => setSendRecipient(connectedAddress)}
+              >
+                Use my address
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {/* Network switcher — app RPC target (default Sepolia for testing) */}
@@ -879,6 +957,51 @@ export default function WalletAccountV6Tag() {
 
       {/* Inline result */}
       {active.result ? <ResultCard r={active.result} /> : null}
+
+      {/* Submission progress — mainnet txs for strk20.json */}
+      {recordedTxs.length > 0 && (
+        <div className={styles.submissionBox}>
+          <div className={styles.submissionHead}>
+            <span className={styles.submissionTitle}>Submission txs</span>
+            <span className={styles.submissionCount}>
+              {mainnetHashes(recordedTxs).length}/3 mainnet
+            </span>
+          </div>
+          <ul className={styles.submissionList}>
+            {recordedTxs.slice(0, 5).map((tx) => (
+              <li key={tx.hash} className={styles.submissionItem}>
+                <span className={styles.submissionAction}>{tx.action}</span>
+                <span className={styles.submissionNet}>{tx.network}</span>
+                <a
+                  className={styles.submissionHash}
+                  href={
+                    tx.network === "MAINNET"
+                      ? `https://voyager.online/tx/${tx.hash}`
+                      : `https://sepolia.voyager.online/tx/${tx.hash}`
+                  }
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {shortHex(tx.hash)} ↗
+                </a>
+              </li>
+            ))}
+          </ul>
+          {mainnetHashes(recordedTxs).length > 0 && (
+            <button
+              type="button"
+              className={styles.submissionCopy}
+              onClick={() => {
+                void navigator.clipboard.writeText(strk20JsonSnippet(recordedTxs));
+                setCopiedJson(true);
+                setTimeout(() => setCopiedJson(false), 2000);
+              }}
+            >
+              {copiedJson ? "Copied!" : "Copy mainnet hashes for strk20.json"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
