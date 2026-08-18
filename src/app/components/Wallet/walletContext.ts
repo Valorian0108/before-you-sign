@@ -27,6 +27,7 @@ export interface WalletState {
     setWalletApiList: (version: string[]) => void,
     selectedApiVersion: string,
     setSelectedApiVersion: (version: string) => void,
+    disconnectWallet: () => void,
 
 }
 
@@ -51,4 +52,24 @@ export const useStoreWallet = create<WalletState>()(set => ({
     setWalletApiList: (walletApi: string[]) => { set(state => ({ walletApiList: walletApi })) },
     selectedApiVersion: "default",
     setSelectedApiVersion: (selectedApiVersion: string) => { set(state => ({ selectedApiVersion })) },
+    disconnectWallet: () => {
+        const wallet = useStoreWallet.getState().StarknetWalletObject;
+        try {
+            if (wallet && typeof (wallet as { disconnect?: () => Promise<void> }).disconnect === "function") {
+                void (wallet as { disconnect: () => Promise<void> }).disconnect();
+            }
+        } catch {
+            /* wallet may already be disconnected */
+        }
+        set({
+            isConnected: false,
+            address: "",
+            chain: "",
+            myWalletAccount: undefined,
+            StarknetWalletObject: undefined,
+            account: undefined,
+            provider: undefined,
+            walletApiList: [],
+        });
+    },
     }));

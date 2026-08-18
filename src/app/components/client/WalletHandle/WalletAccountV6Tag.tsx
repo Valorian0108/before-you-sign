@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { hash, json, num, shortString, validateAndParseAddress } from "starknet";
+import { hash, json, num, validateAndParseAddress, WalletAccountV6 } from "starknet";
 import type { WALLET_API } from "@starknet-io/types-js";
 import styles from "../../../uni.module.css";
 import * as constants from "@/utils/constants";
@@ -11,21 +11,42 @@ import { StrkCoin } from "../../TokenIcons";
 import PrivacyPreview from "../../PrivacyPreview";
 import SelectWallet from "./SelectWallet";
 import { simulatePrivacy, type PrivacySimulation } from "@/utils/privacySimulator";
+import {
+  networkLabel,
+  providerIndexForChainId,
+  STRK20_NETWORKS,
+  type Strk20NetworkIndex,
+} from "@/utils/network";
 
 // DEMO: all actions use one token (STRK). Swap constants.addrSTRK for your token,
 // or make the token a user selection.
 const TOKEN = constants.addrSTRK;
-// DEMO amounts, in the token's smallest unit (1e18 = 1 STRK). Replace with real
-// UX (user-entered amounts) in your app.
-const TEN_STRK = 10n * 10n ** 18n;
 const FIVE_STRK = 5n * 10n ** 18n;
-const ONE_STRK = 1n * 10n ** 18n;
 
 // Format a felt amount (STRK, 18 decimals) as a human STRK string ("10", "1.5").
 function fmtStrk(amount: bigint): string {
   const whole = amount / 10n ** 18n;
   const frac = (amount % 10n ** 18n).toString().padStart(18, "0").replace(/0+$/, "");
   return frac ? `${whole}.${frac}` : `${whole}`;
+}
+
+// Parse a user-entered STRK string into wei (18 decimals). Returns null if invalid.
+function parseStrkInput(input: string): bigint | null {
+  const trimmed = input.trim();
+  if (!trimmed || !/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  const [whole, frac = ""] = trimmed.split(".");
+  if (frac.length > 18) return null;
+  try {
+    const padded = frac.padEnd(18, "0");
+    const value = BigInt(whole) * 10n ** 18n + BigInt(padded || "0");
+    return value > 0n ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function amountLabelFromWei(wei: bigint): string {
+  return `${fmtStrk(wei)} STRK`;
 }
 
 // Shorten a felt/hex for display, like the wallet address ("0x1dc5a1c...1927a").
@@ -147,15 +168,30 @@ export default function WalletAccountV6Tag() {
   const myFrontendProviderIndex = useFrontendProvider(
     (state) => state.currentFrontendProviderIndex
   );
+  const setCurrentFrontendProviderIndex = useFrontendProvider(
+    (state) => state.setCurrentFrontendProviderIndex
+  );
   const myWalletAccount = useStoreWallet((state) => state.myWalletAccount);
+  const setMyWalletAccount = useStoreWallet((state) => state.setMyWalletAccount);
+  const starknetWallet = useStoreWallet((state) => state.StarknetWalletObject);
   const connectedAddress = useStoreWallet((state) => state.address);
   const isConnected = useStoreWallet((state) => state.isConnected);
   const chain = useStoreWallet((state) => state.chain);
   const [chainIdWA, setChainIdWA] = useState<string>(chain);
+  const [switchingNetwork, setSwitchingNetwork] = useState(false);
 
-  // STRK20 privacy pool is available on Mainnet (index 0) and Sepolia (index 2).
-  const networkName = constants.Strk20Networks[myFrontendProviderIndex];
-  const isStrk20Network = networkName !== undefined;
+  const strk20ProviderIndex: Strk20NetworkIndex | null =
+    myFrontendProviderIndex === 0 || myFrontendProviderIndex === 2
+      ? myFrontendProviderIndex
+      : null;
+  const networkName = strk20ProviderIndex !== null ? networkLabel(strk20ProviderIndex) : undefined;
+  const isStrk20Network = strk20ProviderIndex !== null;
+  const walletNetworkIndex = chain ? providerIndexForChainId(chain) : null;
+  const walletNetworkMismatch =
+    isConnected &&
+    walletNetworkIndex !== null &&
+    strk20ProviderIndex !== null &&
+    walletNetworkIndex !== strk20ProviderIndex;
   // Echo-invoke helper is deployed per-network ("0x0" = not deployed on this one).
   const echoHelperAddr = constants.echoHelperForIndex(myFrontendProviderIndex);
   const hasEchoHelper = (() => {
@@ -179,9 +215,13 @@ export default function WalletAccountV6Tag() {
   const [deploying, setDeploying] = useState<boolean>(false);
   // Active action tab (Umbra-style single-action interface).
   const [tab, setTab] = useState<TabKey>("shield");
+  const [shieldAmount, setShieldAmount] = useState("10");
+  const [sendAmount, setSendAmount] = useState("1");
+  const [unshieldAmount, setUnshieldAmount] = useState("1");
   const [preview, setPreview] = useState<PrivacySimulation | null>(null);
   const [pendingRun, setPendingRun] = useState<(() => Promise<void>) | null>(null);
   const [confirmingPreview, setConfirmingPreview] = useState(false);
+  const [walletBusy, setWalletBusy] = useState(false);
 
   const getWAchainId = () => {
     myWalletAccount?.provider
@@ -192,6 +232,23 @@ export default function WalletAccountV6Tag() {
   useEffect(() => {
     getWAchainId();
   }, [myFrontendProviderIndex, chain]);
+
+  async function switchAppNetwork(nextIndex: Strk20NetworkIndex) {
+    if (nextIndex === strk20ProviderIndex || switchingNetwork) return;
+    setSwitchingNetwork(true);
+    try {
+      setCurrentFrontendProviderIndex(nextIndex);
+      if (starknetWallet) {
+        const myWA = await WalletAccountV6.connect(
+          constants.myFrontendProviders[nextIndex],
+          starknetWallet
+        );
+        setMyWalletAccount(myWA);
+      }
+    } finally {
+      setSwitchingNetwork(false);
+    }
+  }
 
   // Submit STRK20 actions through the WalletAccountV6 instance, show the tx hash, then
   // wait for the receipt (privacy-pool txs verify a STARK proof on-chain - long budget).
@@ -207,11 +264,22 @@ export default function WalletAccountV6Tag() {
     }
     let txH: string;
     try {
+      setWalletBusy(true);
       const r = await myWalletAccount.strk20InvokeTransaction(actions);
       txH = r.transaction_hash;
     } catch (error: any) {
-      setResult(errorResult(error?.message ?? error?.toString?.() ?? String(error)));
+      const msg = error?.message ?? error?.toString?.() ?? String(error);
+      const timedOut = /timeout/i.test(msg);
+      setResult(
+        errorResult(
+          timedOut
+            ? `${msg}\n\nSTRK20 proof generation can take 1–3 minutes. Check Ready and Voyager — the transaction may still have succeeded.`
+            : msg
+        )
+      );
       return undefined;
+    } finally {
+      setWalletBusy(false);
     }
     setResult({
       status: "pending",
@@ -302,24 +370,31 @@ export default function WalletAccountV6Tag() {
     }
   };
 
-  const handleShield = async () => {
+  const handleShield = async (amountWei: bigint) => {
     setResultShield(null);
+    const label = amountLabelFromWei(amountWei);
     const actions: WALLET_API.STRK20_ACTION[] = [
-      { type: "deposit", token: TOKEN, amount: num.toHex(TEN_STRK) },
+      { type: "deposit", token: TOKEN, amount: num.toHex(amountWei) },
     ];
-    await submit(actions, setResultShield, "10 STRK");
+    await submit(actions, setResultShield, label);
   };
 
-  const handleUnshield = async () => {
+  const handleUnshield = async (amountWei: bigint) => {
     setResultUnshield(null);
     if (!connectedAddress) {
       setResultUnshield(errorResult("Connect a wallet first (recipient = connected account)."));
       return;
     }
+    const label = amountLabelFromWei(amountWei);
     const actions: WALLET_API.STRK20_ACTION[] = [
-      { type: "withdraw", token: TOKEN, amount: num.toHex(ONE_STRK), recipient: connectedAddress },
+      {
+        type: "withdraw",
+        token: TOKEN,
+        amount: num.toHex(amountWei),
+        recipient: connectedAddress,
+      },
     ];
-    await submit(actions, setResultUnshield, "1 STRK");
+    await submit(actions, setResultUnshield, label);
   };
 
   const walletAddr = myWalletAccount?.address
@@ -350,43 +425,67 @@ export default function WalletAccountV6Tag() {
     setPendingRun(null);
   }
 
-  const requestShieldPreview = () =>
+  const requestShieldPreview = () => {
+    const amountWei = parseStrkInput(shieldAmount);
+    if (!amountWei) {
+      setResultShield(errorResult("Enter a valid STRK amount (e.g. 10 or 1.5)."));
+      return;
+    }
     openPrivacyPreview(
-      simulatePrivacy({ action: "shield", amountLabel: "10 STRK" }),
-      handleShield
+      simulatePrivacy({ action: "shield", amountLabel: amountLabelFromWei(amountWei) }),
+      () => handleShield(amountWei)
     );
+  };
 
-  const requestTransferPreview = () =>
+  const requestTransferPreview = () => {
+    const amountWei = parseStrkInput(sendAmount);
+    if (!amountWei) {
+      setResultTransfer(errorResult("Enter a valid STRK amount (e.g. 1 or 0.5)."));
+      return;
+    }
     openPrivacyPreview(
       simulatePrivacy({
         action: "transfer",
-        amountLabel: "1 STRK",
+        amountLabel: amountLabelFromWei(amountWei),
         recipientShort: shortWallet,
         isSelfTransfer: true,
       }),
-      handleSelfTransfer
+      () => handleSelfTransfer(amountWei)
     );
+  };
 
-  const requestUnshieldPreview = () =>
+  const requestUnshieldPreview = () => {
+    const amountWei = parseStrkInput(unshieldAmount);
+    if (!amountWei) {
+      setResultUnshield(errorResult("Enter a valid STRK amount (e.g. 1 or 0.5)."));
+      return;
+    }
     openPrivacyPreview(
       simulatePrivacy({
         action: "unshield",
-        amountLabel: "1 STRK",
+        amountLabel: amountLabelFromWei(amountWei),
         recipientShort: shortWallet,
       }),
-      handleUnshield
+      () => handleUnshield(amountWei)
     );
+  };
 
-  const handleSelfTransfer = async () => {
+  const handleSelfTransfer = async (amountWei: bigint) => {
     setResultTransfer(null);
     if (!connectedAddress) {
       setResultTransfer(errorResult("Connect a wallet first (recipient = connected account)."));
       return;
     }
+    const label = amountLabelFromWei(amountWei);
     const actions: WALLET_API.STRK20_ACTION[] = [
-      { type: "transfer", token: TOKEN, amount: num.toHex(ONE_STRK), recipient: connectedAddress },
+      {
+        type: "transfer",
+        token: TOKEN,
+        amount: num.toHex(amountWei),
+        recipient: connectedAddress,
+      },
     ];
-    await submit(actions, setResultTransfer, "1 STRK");
+    await submit(actions, setResultTransfer, label);
   };
 
   // Complex action - echo invoke round-trip: withdraw 5 STRK to the helper, create an
@@ -537,19 +636,87 @@ export default function WalletAccountV6Tag() {
     </div>
   );
 
-  // Per-tab content: label, the fixed amount + token, a one-line hint, the CTA
-  // label, its handler, and the structured result.
-  const CONFIG: Record<
-    TabKey,
-    { label: string; value: string; token: string; hint: string; cta: string; onRun: () => void; result: ActionResult | null; disabled: boolean; usesPreview: boolean }
-  > = {
-    shield: { label: "You're shielding", value: "10", token: "STRK", hint: "Deposit into the privacy pool", cta: "Preview & shield", onRun: requestShieldPreview, result: resultShield, disabled: !isStrk20Network, usesPreview: true },
-    send: { label: "You're sending - to self", value: "1", token: "STRK", hint: "Private in-pool transfer", cta: "Preview & send", onRun: requestTransferPreview, result: resultTransfer, disabled: !isStrk20Network, usesPreview: true },
-    unshield: { label: "You're unshielding", value: "1", token: "STRK", hint: "Withdraw to your account", cta: "Preview & unshield", onRun: requestUnshieldPreview, result: resultUnshield, disabled: !isStrk20Network, usesPreview: true },
-    echo: { label: "Echo invoke round-trip", value: "5", token: "STRK", hint: "Withdraw → helper → refill open note", cta: "Run echo", onRun: handleComplex, result: resultComplex, disabled: !isStrk20Network || !hasEchoHelper, usesPreview: false },
-    balances: { label: "Shielded balances", value: "All", token: "tokens", hint: "Read your private pool balances", cta: "Query balances", onRun: handleBalances, result: resultBalances, disabled: !isStrk20Network, usesPreview: false },
+  // Per-tab content: label, amount field, token, hint, CTA, handler, result.
+  type TabConfig = {
+    label: string;
+    token: string;
+    hint: string;
+    cta: string;
+    onRun: () => void;
+    result: ActionResult | null;
+    disabled: boolean;
+    usesPreview: boolean;
+    editableAmount?: boolean;
+    amount?: string;
+    onAmountChange?: (v: string) => void;
+    staticValue?: string;
+  };
+
+  const CONFIG: Record<TabKey, TabConfig> = {
+    shield: {
+      label: "You're shielding",
+      token: "STRK",
+      hint: "Deposit into the privacy pool",
+      cta: "Preview & shield",
+      onRun: requestShieldPreview,
+      result: resultShield,
+      disabled: !isStrk20Network,
+      usesPreview: true,
+      editableAmount: true,
+      amount: shieldAmount,
+      onAmountChange: setShieldAmount,
+    },
+    send: {
+      label: "You're sending - to self",
+      token: "STRK",
+      hint: "Private in-pool transfer",
+      cta: "Preview & send",
+      onRun: requestTransferPreview,
+      result: resultTransfer,
+      disabled: !isStrk20Network,
+      usesPreview: true,
+      editableAmount: true,
+      amount: sendAmount,
+      onAmountChange: setSendAmount,
+    },
+    unshield: {
+      label: "You're unshielding",
+      token: "STRK",
+      hint: "Withdraw to your account",
+      cta: "Preview & unshield",
+      onRun: requestUnshieldPreview,
+      result: resultUnshield,
+      disabled: !isStrk20Network,
+      usesPreview: true,
+      editableAmount: true,
+      amount: unshieldAmount,
+      onAmountChange: setUnshieldAmount,
+    },
+    echo: {
+      label: "Echo invoke round-trip",
+      token: "STRK",
+      hint: "Withdraw → helper → refill open note",
+      cta: "Run echo",
+      onRun: handleComplex,
+      result: resultComplex,
+      disabled: !isStrk20Network || !hasEchoHelper,
+      usesPreview: false,
+      staticValue: "5",
+    },
+    balances: {
+      label: "Shielded balances",
+      token: "tokens",
+      hint: "Read your private pool balances",
+      cta: "Query balances",
+      onRun: handleBalances,
+      result: resultBalances,
+      disabled: !isStrk20Network,
+      usesPreview: false,
+      staticValue: "All",
+    },
   };
   const active = CONFIG[tab];
+  const actionBusy = confirmingPreview || walletBusy;
 
   return (
     <div className={styles.panel}>
@@ -570,7 +737,20 @@ export default function WalletAccountV6Tag() {
       <div className={styles.inputBlock}>
         <div className={styles.inputLabel}>{active.label}</div>
         <div className={styles.inputMain}>
-          <div className={styles.bigValue}>{active.value}</div>
+          {active.editableAmount ? (
+            <input
+              className={styles.amountInput}
+              type="text"
+              inputMode="decimal"
+              placeholder="0"
+              value={active.amount}
+              onChange={(e) => active.onAmountChange?.(e.target.value)}
+              disabled={actionBusy}
+              aria-label={`${active.label} amount`}
+            />
+          ) : (
+            <div className={styles.bigValue}>{active.staticValue}</div>
+          )}
           <span className={styles.tokenPill}>
             <span className={styles.tokenDot}>
               <StrkCoin size={22} />
@@ -584,18 +764,51 @@ export default function WalletAccountV6Tag() {
         </div>
       </div>
 
-      {/* Info / network row */}
+      {/* Network switcher — app RPC target (default Sepolia for testing) */}
       <div className={styles.feeRow}>
-        <span>Network</span>
-        <span className={`${styles.feeVal} ${isStrk20Network ? styles.netOk : styles.netBad}`}>
-          <span className={`${styles.netDot} ${isStrk20Network ? styles.netOkDot : styles.netBadDot}`} />
-          {networkName ?? "Unsupported"}
-        </span>
+        <span>App network</span>
+        <div className={styles.networkSwitch}>
+          {(Object.keys(STRK20_NETWORKS) as unknown as Strk20NetworkIndex[]).map((idx) => (
+            <button
+              key={idx}
+              type="button"
+              className={`${styles.networkBtn} ${
+                strk20ProviderIndex === idx ? styles.networkBtnActive : ""
+              }`}
+              disabled={switchingNetwork}
+              onClick={() => switchAppNetwork(idx)}
+            >
+              {STRK20_NETWORKS[idx].label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {isConnected && walletNetworkIndex !== null && (
+        <div className={styles.feeRow}>
+          <span>Wallet network</span>
+          <span className={`${styles.feeVal} ${walletNetworkMismatch ? styles.netBad : styles.netOk}`}>
+            <span
+              className={`${styles.netDot} ${
+                walletNetworkMismatch ? styles.netBadDot : styles.netOkDot
+              }`}
+            />
+            {networkLabel(walletNetworkIndex) ?? "Unknown"}
+          </span>
+        </div>
+      )}
+
+      {walletNetworkMismatch && (
+        <div className={styles.warn}>
+          App is on {networkName}, but Ready reports {networkLabel(walletNetworkIndex!)}.
+          Switch Ready to {networkName}, or tap {networkLabel(walletNetworkIndex!)} above to
+          match your wallet.
+        </div>
+      )}
 
       {!isStrk20Network && (
         <div className={styles.warn}>
-          STRK20 actions require Mainnet or Sepolia - switch your wallet network.
+          STRK20 actions require Mainnet or Sepolia — pick a network above.
         </div>
       )}
 
@@ -621,10 +834,14 @@ export default function WalletAccountV6Tag() {
       {isConnected ? (
         <button
           className={styles.btnCta}
-          disabled={active.disabled || confirmingPreview}
+          disabled={active.disabled || actionBusy}
           onClick={active.onRun}
         >
-          {confirmingPreview && active.usesPreview ? "Waiting for wallet…" : active.cta}
+          {walletBusy
+            ? "Generating proof in wallet… (1–3 min)"
+            : confirmingPreview && active.usesPreview
+            ? "Confirm in wallet…"
+            : active.cta}
         </button>
       ) : (
         <SelectWallet variant="ctaBig" />

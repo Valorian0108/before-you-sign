@@ -3,9 +3,13 @@ import styles from "../../../uni.module.css";
 import { useStoreWallet } from "../../Wallet/walletContext";
 import { useFrontendProvider } from "../provider/providerContext";
 import { useEffect, useState } from "react";
-import { walletV6, validateAndParseAddress, constants as SNconstants, WalletAccountV6 } from "starknet";
+import { walletV6, validateAndParseAddress, WalletAccountV6 } from "starknet";
 import { WALLET_API } from "@starknet-io/types-js";
 import { myFrontendProviders } from "@/utils/constants";
+import {
+  providerIndexForChainId,
+  type Strk20NetworkIndex,
+} from "@/utils/network";
 import { createStore, type Store } from "@starknet-io/get-starknet-discovery";
 import type {
   WalletWithStarknetFeatures,
@@ -29,6 +33,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
 
   const isConnected = useStoreWallet(state => state.isConnected);
   const setConnected = useStoreWallet(state => state.setConnected);
+  const disconnectWallet = useStoreWallet(state => state.disconnectWallet);
   const address = useStoreWallet(state => state.address);
 
   const setWalletApi = useStoreWallet(state => state.setWalletApiList);
@@ -64,11 +69,13 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   async function handleSelectedWallet(selectedWallet: WalletWithStarknetFeatures) {
     setMyWallet(selectedWallet); // zustand
     console.log("Trying to connect wallet=", selectedWallet);
-    const myWA = await WalletAccountV6.connect(myFrontendProviders[2], selectedWallet);
-    setMyWalletAccount(myWA);
-    console.log("WalletAccount created=", myWA);
+
+    const preferredIndex = (myFrontendProviderIndex === 0 || myFrontendProviderIndex === 2
+      ? myFrontendProviderIndex
+      : 2) as Strk20NetworkIndex;
+
     const result = await walletV6.requestAccounts(selectedWallet);
-    if (typeof (result) == "string") {
+    if (typeof result == "string") {
       console.log("This Wallet is not compatible.");
       return;
     }
@@ -77,14 +84,33 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       const addr = validateAndParseAddress(result[0]);
       setAddressAccount(addr); // zustand
     }
-    const isConnectedWallet: boolean = await walletV6.getPermissions(selectedWallet).then((res: any) => (res as WALLET_API.Permission[]).includes(WALLET_API.Permission.ACCOUNTS));
+
+    const isConnectedWallet: boolean = await walletV6
+      .getPermissions(selectedWallet)
+      .then((res: any) =>
+        (res as WALLET_API.Permission[]).includes(WALLET_API.Permission.ACCOUNTS)
+      );
     setConnected(isConnectedWallet); // zustand
+
+    let providerIndex = preferredIndex;
     if (isConnectedWallet) {
       const chainId = (await walletV6.requestChainId(selectedWallet)) as string;
       setChain(chainId);
-      setCurrentFrontendProviderIndex(chainId === SNconstants.StarknetChainId.SN_MAIN ? 0 : 2);
-      console.log("change Provider index to :", myFrontendProviderIndex);
+      const detected = providerIndexForChainId(chainId);
+      if (detected !== null) {
+        providerIndex = detected;
+      }
+      setCurrentFrontendProviderIndex(providerIndex);
+      console.log("Provider index:", providerIndex, "wallet chainId:", chainId);
     }
+
+    const myWA = await WalletAccountV6.connect(
+      myFrontendProviders[providerIndex],
+      selectedWallet
+    );
+    setMyWalletAccount(myWA);
+    console.log("WalletAccount created=", myWA);
+
     setWalletApi(await walletV6.supportedSpecs(selectedWallet));
   }
 
@@ -167,7 +193,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       return (
         <button
           className={styles.addrPill}
-          onClick={() => setConnected(false)}
+          onClick={() => disconnectWallet()}
           title="Disconnect"
         >
           <span className={styles.addrDot} />

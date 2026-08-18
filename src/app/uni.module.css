@@ -401,6 +401,22 @@
   margin: 8px 0 12px;
 }
 .bigValue { font-size: 40px; font-weight: 500; letter-spacing: -0.03em; line-height: 1; }
+.amountInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+  font-family: inherit;
+  padding: 0;
+  outline: none;
+}
+.amountInput::placeholder { color: var(--muted); opacity: 0.6; }
+.amountInput:disabled { opacity: 0.5; cursor: not-allowed; }
 .tokenPill {
   display: inline-flex;
   align-items: center;
@@ -443,6 +459,31 @@
   background: #fff;
 }
 .feeVal { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); font-weight: 500; }
+
+.networkSwitch {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.networkBtn {
+  padding: 6px 12px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.networkBtnActive {
+  color: var(--pink-text);
+  background: var(--pink-soft);
+  border-color: var(--pink-soft-2);
+}
+.networkBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .btnCta {
   width: 100%;
