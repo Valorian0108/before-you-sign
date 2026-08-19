@@ -13,24 +13,40 @@ function BotanicalMark() {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
+      {/* Main vertical line representing transaction flow */}
       <path
-        d="M100 260V80"
+        d="M100 260V40"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <path
-        d="M100 120C72 100 48 88 32 72M100 100C128 82 152 68 168 52M100 160C70 148 52 132 40 112M100 155C130 142 148 126 160 108M100 200C78 192 62 178 52 162M100 198C122 188 138 174 148 158"
-        stroke="currentColor"
-        strokeWidth="1.25"
-        strokeLinecap="round"
-      />
-      <ellipse cx="32" cy="72" rx="14" ry="22" transform="rotate(-35 32 72)" stroke="currentColor" strokeWidth="1.25" />
-      <ellipse cx="168" cy="52" rx="14" ry="22" transform="rotate(35 168 52)" stroke="currentColor" strokeWidth="1.25" />
-      <ellipse cx="40" cy="112" rx="12" ry="20" transform="rotate(-28 40 112)" stroke="currentColor" strokeWidth="1.25" />
-      <ellipse cx="160" cy="108" rx="12" ry="20" transform="rotate(28 160 108)" stroke="currentColor" strokeWidth="1.25" />
-      <ellipse cx="52" cy="162" rx="11" ry="18" transform="rotate(-22 52 162)" stroke="currentColor" strokeWidth="1.25" />
-      <ellipse cx="148" cy="158" rx="11" ry="18" transform="rotate(22 148 158)" stroke="currentColor" strokeWidth="1.25" />
+      
+      {/* Privacy shield container */}
+      <rect x="60" y="60" width="80" height="60" rx="4" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <path d="M100 70 L100 90 M90 80 L110 80" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      
+      {/* Public observer layer */}
+      <rect x="60" y="140" width="80" height="40" rx="4" stroke="currentColor" strokeWidth="1.25" fill="none" strokeDasharray="4 2" />
+      <circle cx="85" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" />
+      <circle cx="100" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" />
+      <circle cx="115" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" />
+      
+      {/* Hidden data layer */}
+      <rect x="60" y="200" width="80" height="40" rx="4" stroke="currentColor" strokeWidth="1.25" fill="none" />
+      <path d="M75 220 L100 205 L125 220" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+      
+      {/* Connection lines */}
+      <path d="M100 120 L100 140" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      <path d="M100 180 L100 200" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+      
+      {/* Input/Output nodes */}
+      <circle cx="100" cy="20" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      <circle cx="100" cy="260" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+      
+      {/* Labels */}
+      <text x="15" y="85" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7">INPUT</text>
+      <text x="15" y="165" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7">PUBLIC</text>
+      <text x="15" y="225" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7">HIDDEN</text>
     </svg>
   );
 }
@@ -39,29 +55,31 @@ export default function Page() {
   return (
     <div className={styles.page}>
       <nav className={styles.nav}>
-        <div className={styles.brand}>
-          <span className={styles.brandSlash}>/</span>
-          <span className={styles.brandName}>STRK20</span>
-          <span className={styles.brandTag}>privacy preview</span>
-        </div>
+        <pre className={styles.navTermLine}>
+          <span className={styles.navPrompt}>strk20</span>
+          <a href="#shield" className={styles.navLink}>--shield</a>
+          <a href="#send" className={styles.navLink}>--send</a>
+          <a href="#unshield" className={styles.navLink}>--unshield</a>
+          <span className={styles.navCaret} aria-hidden="true">▮</span>
+        </pre>
         <SelectWallet variant="nav" />
       </nav>
 
       <div className={styles.dashboard}>
         <header className={styles.editorialHero}>
           <div className={styles.heroCopy}>
-            <p className={styles.dispatch}>■ A privacy dispatch</p>
+            <p className={styles.dispatch}>■ Privacy system analysis</p>
             <h1 className={styles.heroTitle}>
-              See what stays
+              Transaction
               <br />
-              <span className={styles.heroAccent}>private</span>
+              <span className={styles.heroAccent}>schematics</span>
             </h1>
             <p className={styles.heroBody}>
-              For Starknet users who want shielded STRK but don&apos;t yet understand
-              what the chain actually reveals. Preview every action before you sign —
-              honestly, with the compliance layer included.
+              Engineering-grade privacy preview for STRK20. Analyze chain visibility,
+              data flow, and compliance architecture before execution. Precision
+              tools for private transactions.
             </p>
-            <p className={styles.heroSign}>— before you sign</p>
+            <p className={styles.heroSign}>before-you-sign — system analysis</p>
           </div>
           <div className={styles.heroArt}>
             <BotanicalMark />
@@ -71,19 +89,19 @@ export default function Page() {
         <div className={styles.dashboardGrid}>
           <aside className={styles.contextCol}>
             <section className={styles.contextCard}>
-              <h2 className={styles.contextTitle}>How it works</h2>
+              <h2 className={styles.contextTitle}>System workflow</h2>
               <ol className={styles.contextSteps}>
-                <li>Configure a shield, send, or unshield</li>
-                <li>Open the privacy preview — what&apos;s public, hidden, conditional</li>
-                <li>Sign in Ready only when you understand the tradeoffs</li>
+                <li>Configure shield/send/unshield parameters</li>
+                <li>Analyze privacy preview — public/hidden/conditional data</li>
+                <li>Execute transaction with full visibility awareness</li>
               </ol>
             </section>
             <section className={styles.contextCard}>
-              <h2 className={styles.contextTitle}>What we never claim</h2>
+              <h2 className={styles.contextTitle}>Privacy constraints</h2>
               <ul className={styles.contextList}>
-                <li>Shielding links your public wallet to the pool</li>
+                <li>Shielding creates public link to pool entry point</li>
                 <li>Unshielding reveals exit address and amount</li>
-                <li>Viewing keys exist for compliance — shown in every preview</li>
+                <li>Compliance viewing keys exist — shown in analysis</li>
               </ul>
             </section>
           </aside>
@@ -98,10 +116,7 @@ export default function Page() {
         <a href="https://github.com/Valorian0108/before-you-sign" target="_blank" rel="noreferrer">
           Repository
         </a>
-        <span className={styles.footerDot}>·</span>
-        <span>Starknet.js v10.4.0</span>
-        <span className={styles.footerDot}>·</span>
-        <span>Garden × Starknet</span>
+        <span> · Starknet.js v10.4.0 · Cobalt × Starknet</span>
       </footer>
     </div>
   );
