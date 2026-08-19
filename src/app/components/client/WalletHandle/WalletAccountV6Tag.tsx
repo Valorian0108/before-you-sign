@@ -302,7 +302,7 @@ export default function WalletAccountV6Tag() {
       setResult(
         errorResult(
           timedOut
-            ? `${msg}\n\nSTRK20 proof generation can take 1–3 minutes. Check Ready and Voyager — the transaction may still have succeeded.`
+            ? `${msg}\n\nSTRK20 proof generation can take 1-3 minutes. Check Ready and Voyager | the transaction may still have succeeded.`
             : msg
         )
       );
@@ -716,7 +716,7 @@ export default function WalletAccountV6Tag() {
     send: {
       label: "You're sending privately",
       token: "STRK",
-      hint: "In-pool transfer — recipient must be STRK20-registered",
+      hint: "In-pool transfer | recipient must be STRK20-registered",
       cta: "Preview & send",
       onRun: requestTransferPreview,
       result: resultTransfer,
@@ -842,7 +842,7 @@ export default function WalletAccountV6Tag() {
         )}
       </div>
 
-      {/* Network switcher — app RPC target (default Sepolia for testing) */}
+      {/* Network switcher | app RPC target (default Sepolia for testing) */}
       <div className={styles.feeRow}>
         <span>App network</span>
         <div className={styles.networkSwitch}>
@@ -886,7 +886,7 @@ export default function WalletAccountV6Tag() {
 
       {!isStrk20Network && (
         <div className={styles.warn}>
-          STRK20 actions require Mainnet or Sepolia — pick a network above.
+          STRK20 actions require Mainnet or Sepolia | pick a network above.
         </div>
       )}
 
@@ -958,7 +958,7 @@ export default function WalletAccountV6Tag() {
       {/* Inline result */}
       {active.result ? <ResultCard r={active.result} /> : null}
 
-      {/* Submission progress — mainnet txs for strk20.json */}
+      {/* Submission progress | mainnet txs for strk20.json */}
       {recordedTxs.length > 0 && (
         <div className={styles.submissionBox}>
           <div className={styles.submissionHead}>

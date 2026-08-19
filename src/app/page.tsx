@@ -79,7 +79,7 @@ export default function Page() {
               data flow, and compliance architecture before execution. Precision
               tools for private transactions.
             </p>
-            <p className={styles.heroSign}>before-you-sign — system analysis</p>
+            <p className={styles.heroSign}>before-you-sign | system analysis</p>
           </div>
           <div className={styles.heroArt}>
             <BotanicalMark />
@@ -92,7 +92,7 @@ export default function Page() {
               <h2 className={styles.contextTitle}>System workflow</h2>
               <ol className={styles.contextSteps}>
                 <li>Configure shield/send/unshield parameters</li>
-                <li>Analyze privacy preview — public/hidden/conditional data</li>
+                <li>Analyze privacy preview | public/hidden/conditional data</li>
                 <li>Execute transaction with full visibility awareness</li>
               </ol>
             </section>
@@ -101,7 +101,7 @@ export default function Page() {
               <ul className={styles.contextList}>
                 <li>Shielding creates public link to pool entry point</li>
                 <li>Unshielding reveals exit address and amount</li>
-                <li>Compliance viewing keys exist — shown in analysis</li>
+                <li>Compliance viewing keys exist | shown in analysis</li>
               </ul>
             </section>
           </aside>
