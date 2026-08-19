@@ -2,17 +2,5 @@
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "regions": ["iad1"],
-  "env": {
-    "NEXT_PUBLIC_PROVIDER_URL": {
-      "description": "Alchemy Starknet RPC key for Starknet provider",
-      "required": true
-    },
-    "NEXT_PUBLIC_STRK20_ECHO_HELPER_SEPOLIA": {
-      "description": "Echo helper contract address on Sepolia (optional)",
-      "required": false,
-      "default": "0x0"
-    }
-  }
+  "framework": "nextjs"
 }
