@@ -20,6 +20,8 @@ cp .env.example .env.local   # add your Alchemy Starknet RPC key
 npm run dev                    # http://localhost:3000
 ```
 
+**Live Demo**: https://before-you-sign-seven.vercel.app/
+
 ### Requirements
 
 - Node.js 18+
