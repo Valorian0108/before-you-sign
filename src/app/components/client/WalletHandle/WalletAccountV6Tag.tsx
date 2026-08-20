@@ -261,6 +261,16 @@ export default function WalletAccountV6Tag() {
     getWAchainId();
   }, [myFrontendProviderIndex, chain]);
 
+  // Auto-match app network to wallet network to avoid manual switching issues
+  useEffect(() => {
+    if (isConnected && chain && walletNetworkIndex !== null) {
+      const validNetworks = [0, 2] as Strk20NetworkIndex[]; // MAINNET and SEPOLIA
+      if (validNetworks.includes(walletNetworkIndex) && walletNetworkIndex !== myFrontendProviderIndex) {
+        setCurrentFrontendProviderIndex(walletNetworkIndex);
+      }
+    }
+  }, [isConnected, chain, walletNetworkIndex, myFrontendProviderIndex, setCurrentFrontendProviderIndex]);
+
   async function switchAppNetwork(nextIndex: Strk20NetworkIndex) {
     if (nextIndex === strk20ProviderIndex || switchingNetwork) return;
     setSwitchingNetwork(true);
