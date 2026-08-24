@@ -13,40 +13,88 @@ function BotanicalMark() {
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden
     >
+      <defs>
+        {/* Gradient for data flow */}
+        <linearGradient id="dataFlowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="currentColor" stopOpacity="0.2" />
+          <stop offset="50%" stopColor="currentColor" stopOpacity="1" />
+          <stop offset="100%" stopColor="currentColor" stopOpacity="0.2" />
+        </linearGradient>
+      </defs>
+
       {/* Main vertical line representing transaction flow */}
       <path
         d="M100 260V40"
         stroke="currentColor"
         strokeWidth="1.5"
         strokeLinecap="round"
+        className={styles.flowLine}
       />
-      
+
+      {/* Animated data flow particles */}
+      <circle cx="100" cy="20" r="3" fill="currentColor" className={styles.flowParticle1}>
+        <animate attributeName="cy" values="20;260;20" dur="3s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;0" dur="3s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="100" cy="60" r="2" fill="currentColor" className={styles.flowParticle2}>
+        <animate attributeName="cy" values="60;260;60" dur="3s" begin="0.5s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;0" dur="3s" begin="0.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="100" cy="100" r="2" fill="currentColor" className={styles.flowParticle3}>
+        <animate attributeName="cy" values="100;260;100" dur="3s" begin="1s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0;1;0" dur="3s" begin="1s" repeatCount="indefinite" />
+      </circle>
+
       {/* Privacy shield container */}
-      <rect x="60" y="60" width="80" height="60" rx="4" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <path d="M100 70 L100 90 M90 80 L110 80" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-      
+      <rect x="60" y="60" width="80" height="60" rx="4" stroke="currentColor" strokeWidth="1.5" fill="none" className={styles.shieldBox}>
+        <animate attributeName="strokeOpacity" values="0.5;1;0.5" dur="2s" repeatCount="indefinite" />
+      </rect>
+      <path d="M100 70 L100 90 M90 80 L110 80" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className={styles.shieldIcon}>
+        <animate attributeName="opacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+      </path>
+
       {/* Public observer layer */}
-      <rect x="60" y="140" width="80" height="40" rx="4" stroke="currentColor" strokeWidth="1.25" fill="none" strokeDasharray="4 2" />
-      <circle cx="85" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" />
-      <circle cx="100" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" />
-      <circle cx="115" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" />
-      
+      <rect x="60" y="140" width="80" height="40" rx="4" stroke="currentColor" strokeWidth="1.25" fill="none" strokeDasharray="4 2" className={styles.publicBox}>
+        <animate attributeName="strokeDashoffset" values="0;12;0" dur="2s" repeatCount="indefinite" />
+      </rect>
+      <circle cx="85" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" className={styles.publicDot}>
+        <animate attributeName="r" values="2;4;2" dur="1.5s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="100" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" className={styles.publicDot}>
+        <animate attributeName="r" values="2;4;2" dur="1.5s" begin="0.3s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="115" cy="160" r="3" stroke="currentColor" strokeWidth="1" fill="none" className={styles.publicDot}>
+        <animate attributeName="r" values="2;4;2" dur="1.5s" begin="0.6s" repeatCount="indefinite" />
+      </circle>
+
       {/* Hidden data layer */}
-      <rect x="60" y="200" width="80" height="40" rx="4" stroke="currentColor" strokeWidth="1.25" fill="none" />
-      <path d="M75 220 L100 205 L125 220" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-      
+      <rect x="60" y="200" width="80" height="40" rx="4" stroke="currentColor" strokeWidth="1.25" fill="none" className={styles.hiddenBox}>
+        <animate attributeName="strokeOpacity" values="0.3;0.8;0.3" dur="2.5s" repeatCount="indefinite" />
+      </rect>
+      <path d="M75 220 L100 205 L125 220" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className={styles.hiddenIcon}>
+        <animate attributeName="opacity" values="0.2;1;0.2" dur="2.5s" repeatCount="indefinite" />
+      </path>
+
       {/* Connection lines */}
-      <path d="M100 120 L100 140" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-      <path d="M100 180 L100 200" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-      
+      <path d="M100 120 L100 140" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className={styles.connector}>
+        <animate attributeName="strokeOpacity" values="0.3;1;0.3" dur="2s" repeatCount="indefinite" />
+      </path>
+      <path d="M100 180 L100 200" stroke="currentColor" strokeWidth="1" strokeLinecap="round" className={styles.connector}>
+        <animate attributeName="strokeOpacity" values="0.3;1;0.3" dur="2s" begin="0.5s" repeatCount="indefinite" />
+      </path>
+
       {/* Input/Output nodes */}
-      <circle cx="100" cy="20" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      <circle cx="100" cy="260" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-      
+      <circle cx="100" cy="20" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" className={styles.node}>
+        <animate attributeName="r" values="5;7;5" dur="2s" repeatCount="indefinite" />
+      </circle>
+      <circle cx="100" cy="260" r="6" stroke="currentColor" strokeWidth="1.5" fill="none" className={styles.node}>
+        <animate attributeName="r" values="5;7;5" dur="2s" begin="1s" repeatCount="indefinite" />
+      </circle>
+
       {/* Labels */}
-      <text x="15" y="85" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7">INPUT</text>
-      <text x="15" y="165" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7">PUBLIC</text>
-      <text x="15" y="225" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7">HIDDEN</text>
+      <text x="15" y="85" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7" className={styles.label}>INPUT</text>
+      <text x="15" y="165" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7" className={styles.label}>PUBLIC</text>
+      <text x="15" y="225" fontSize="8" fontFamily="monospace" fill="currentColor" opacity="0.7" className={styles.label}>HIDDEN</text>
     </svg>
   );
 }
