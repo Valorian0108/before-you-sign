@@ -1,0 +1,267 @@
+You are my senior full‑stack engineer agent. Your job is to refactor and document my Starknet dApp “Before You Sign” so it looks and behaves like it was built by someone who deeply knows what they’re doing.
+
+IMPORTANT WORKFLOW RULES
+
+1. Work in an isolated preview/fork
+• Before making any changes, create a separate working copy of this project (e.g. a new branch, a sandbox, or a forked environment) where you can experiment safely.
+• Do NOT push directly to the main branch or overwrite production files without explicit approval.
+• At the end, show me a diff/summary of all changes and wait for my OK before merging/pushing.
+
+2. Minimal surface area
+• Only modify files that are directly required for the tasks below.
+• Do not reformat unrelated files, rename things arbitrarily, or “clean up” code that isn’t part of this scope.
+• If you think a change outside the listed files is necessary, ask me first.
+
+3. Keep me in the loop
+• When you propose a non‑trivial structural change (e.g. moving large blocks of logic, changing public APIs of modules), briefly explain: 
+◦ What you want to change
+◦ Why it improves the project
+◦ Which files are affected
+• Wait for my confirmation if the change is large or risky.
+
+GOAL
+
+Turn this project into a “proof‑point” dApp that clearly signals strong engineering:
+• Clean separation between UI and business logic
+• Types and JSDoc used as documentation
+• A short ARCHITECTURE.md that explains the system
+• Privacy preview explicitly tied to the PrivacySimulation model
+• Centralized, intentional error handling
+
+PROJECT CONTEXT (read these first)
+
+• Repo root: before-you-sign-main/
+• Main page: src/app/page.tsx
+• Main wallet/tx component: src/app/components/client/WalletHandle/WalletAccountV6Tag.tsx
+• Utils: src/utils/constants.ts, network.ts, privacySimulator.ts, submissionTxs.ts
+• Wallet contexts: src/app/components/Wallet/walletContext.ts, src/app/components/client/provider/providerContext.ts
+• Cairo contract: cairo/src/lib.cairo
+• Types used in the app include: 
+◦ PrivacySimulation, VisibilityItem, VisibilityLevel, PrivacyActionType
+◦ ActionResult, Verdict, VerdictRow, ResultRow
+◦ RecordedTx
+◦ WalletState, FrontEndProviderState
+• STRK20 actions use type: WALLET_API.STRK20_ACTION from @starknet-io/types-js
+
+TASKS TO IMPLEMENT
+
+1. Create ARCHITECTURE.md at the repo root
+
+Write a concise ARCHITECTURE.md (≈300–500 words) that explains:
+
+• Overview: what the app does (configure STRK20 actions, preview privacy, sign/execute via privacy‑enabled wallet).
+• Modules: 
+◦ src/app/components/ – UI components
+◦ src/utils/strk20/ – STRK20 action builders, submission, receipt parsing, errors (you will create this)
+◦ src/utils/wallet/ – wallet connection, network detection, provider switching (you will create this)
+◦ cairo/src/ – Echo helper contract
+• Data flow for at least one action (e.g. Shield): 
+A. User selects action + amount
+B. UI calls action builder → STRK20_ACTION[]
+C. UI calls submit() → invokes wallet, waits for tx, maps receipt to ActionResult
+D. Optionally records tx in RecordedTx
+• Core types (briefly): 
+◦ PrivacySimulation, VisibilityItem
+◦ ActionResult, Verdict
+◦ RecordedTx
+• Error strategy: 
+◦ All user‑facing errors normalized into ActionResult with status: "error"
+◦ Timeouts detected and explained
+◦ Reverts detected via receipt status
+• Invariants: 
+◦ Never submit without a connected WalletAccount and matching network
+◦ All user‑facing results go through ActionResult
+◦ Complex flows (echo) are verified on‑chain via event parsing
+
+Use plain English. Do not copy large code snippets; refer to functions by name.
+
+2. Refactor transaction logic out of WalletAccountV6Tag.tsx
+
+Create a new module structure under src/utils/strk20/:
+
+• src/utils/strk20/types.ts 
+◦ Re‑export or define (if not already defined elsewhere) core types: 
+▪ ActionResult, Verdict, VerdictRow, ResultRow
+▪ PrivacyActionType, VisibilityLevel, VisibilityItem, PrivacySimulation
+▪ RecordedTx
+◦ Add brief JSDoc comments describing each type’s role.
+
+• src/utils/strk20/actions.ts 
+◦ Implement pure action builders that return WALLET_API.STRK20_ACTION[]: 
+▪ buildShieldActions(amountWei: bigint): STRK20_ACTION[]
+▪ buildUnshieldActions(amountWei: bigint, recipient: string): STRK20_ACTION[]
+▪ buildTransferActions(amountWei: bigint, recipient: string): STRK20_ACTION[]
+▪ buildEchoActions(helperAddr: string, tokenAddr: string, poolAddr: string, openNoteIds: string[], connectedAddress: string): STRK20_ACTION[]
+◦ Use existing constants (TOKEN, FIVE_STRK, echoHelperAddr, etc.) from constants.ts or network.ts as needed.
+◦ Add JSDoc to each builder explaining: 
+▪ What action it represents
+▪ What each parameter means
+▪ What STRK20_ACTION types are included (deposit/withdraw/transfer/invoke)
+
+• src/utils/strk20/submit.ts 
+◦ Move the core submit() logic from WalletAccountV6Tag.tsx here.
+◦ Signature similar to existing:
+async function submit(
+actions: WALLET_API.STRK20_ACTION[],
+setResult: (r: ActionResult) => void,
+amountLabel: string,
+actionName: string
+): Promise<string | undefined>
+◦ Keep the same behavior: 
+▪ Check myWalletAccount
+▪ Call strk20InvokeTransaction
+▪ Set pending result
+▪ Wait for transaction
+▪ Map receipt to ActionResult
+▪ Record tx if successful
+◦ Add JSDoc explaining: 
+▪ What this function does
+▪ How it uses ActionResult
+▪ How it handles timeouts and reverts
+
+• src/utils/strk20/receipt.ts 
+◦ Move receiptToResult and verifyEcho logic here.
+◦ Export: 
+▪ receiptToResult(...)
+▪ verifyEcho(...)
+◦ Keep the same semantics and return types (ActionResult, Verdict).
+◦ Add JSDoc explaining: 
+▪ How receipts are parsed
+▪ How the Invoked event is located and validated
+▪ What a “good” vs “bad” Verdict means
+
+• src/utils/strk20/errors.ts 
+◦ Implement: 
+▪ errorResult(message: string): ActionResult
+▪ normalizeError(error: unknown): string
+◦ Use these consistently in submit.ts and receipt.ts for all error paths.
+◦ Add JSDoc explaining the error strategy.
+
+• src/utils/wallet/connect.ts 
+◦ Move wallet connection logic from WalletAccountV6Tag.tsx and SelectWallet.tsx that deals with: 
+▪ Connecting wallet
+▪ Detecting chainId
+▪ Choosing provider index
+▪ Creating WalletAccountV6
+◦ Export a function like:
+async function connectWalletAndCreateAccount(
+selectedWallet: WalletWithStarknetFeatures,
+preferredProviderIndex: number
+): Promise<{ account: WalletAccountV6; chainId: string; providerIndex: number }>
+◦ Add JSDoc explaining the flow and invariants.
+
+• src/utils/wallet/networkSwitch.ts 
+◦ Move switchAppNetwork logic here.
+◦ Export:
+async function switchAppNetwork(
+nextIndex: Strk20NetworkIndex,
+starknetWallet: WalletWithStarknetFeatures | undefined,
+currentProviderIndex: number,
+setCurrentFrontendProviderIndex: (idx: number) => void,
+setMyWalletAccount: (acc: WalletAccountV6) => void
+): Promise<void>
+◦ Preserve existing behavior and safety checks.
+◦ Add JSDoc.
+
+Then update WalletAccountV6Tag.tsx:
+
+• Remove the heavy logic for: 
+◦ submit
+◦ handleDeployHelper
+◦ handleBalances
+◦ handleShield / handleUnshield / handleTransfer / handleComplex
+◦ verifyEcho
+◦ network switching
+• Replace with imports: 
+◦ import { buildShieldActions, buildUnshieldActions, buildTransferActions, buildEchoActions } from "@/utils/strk20/actions";
+◦ import { submit } from "@/utils/strk20/submit";
+◦ import { verifyEcho } from "@/utils/strk20/receipt";
+◦ import { connectWalletAndCreateAccount } from "@/utils/wallet/connect";
+◦ import { switchAppNetwork } from "@/utils/wallet/networkSwitch";
+• Handlers should become thin wrappers that: 
+◦ Call the appropriate action builder
+◦ Call submit()
+◦ Update local UI state
+
+Do not change the visible behavior of the UI unless it’s clearly a bug fix or necessary for the refactor.
+
+3. Add JSDoc to key functions and types
+
+For all new files and for the moved functions:
+
+• Add JSDoc comments that: 
+◦ Explain purpose in 1–3 sentences
+◦ Describe parameters and return values
+◦ Mention important invariants or error cases
+
+For existing core types (PrivacySimulation, ActionResult, Verdict, etc.):
+
+• If they live in utils files, add or enhance JSDoc to describe: 
+◦ What they model
+◦ How they’re used in the app
+
+4. Tighten PrivacyPreview around PrivacySimulation
+
+In src/app/components/PrivacyPreview.tsx:
+
+• Add a top‑level JSDoc comment: 
+◦ “Renders a PrivacySimulation as a human‑readable preview. Shows public/hidden/conditional views with observer labels.”
+• Ensure the component: 
+◦ Takes a PrivacySimulation as its main prop (or clearly derives it)
+◦ Explicitly sections the UI into: 
+▪ Public
+▪ Hidden
+▪ Conditional
+◦ Uses the VisibilityItem[] arrays directly to render each section.
+
+If the current implementation already does this, just add the JSDoc and minor clarifications; do not redesign the whole component.
+
+5. Add a “Privacy model” section to README.md
+
+In README.md, add a short section (≈5–8 bullets) titled “Privacy model” that explains:
+
+• For each action (shield, transfer, unshield): 
+◦ What is publicly visible on‑chain
+◦ What is hidden in the pool
+◦ What compliance viewing keys can see (if applicable)
+◦ Any known linkage points (e.g. entry/exit addresses)
+
+Use plain language; no need for deep crypto jargon.
+
+6. Sanity checks
+
+After implementing the above:
+
+• Ensure the project still builds (next build or equivalent).
+• Ensure the main flows still work: 
+◦ Connect wallet
+◦ Shield / transfer / unshield
+◦ Echo/complex flow (if applicable)
+• If you find obvious bugs while refactoring, fix them, but note them in a short “Bug fixes” section at the end of your summary.
+
+DELIVERABLES
+
+At the end of your work, provide:
+
+1. A list of all new files created (with one‑line descriptions).
+2. A list of all modified files (with one‑line descriptions of what changed).
+3. A short summary (5–10 bullets) of: 
+◦ Architectural improvements
+◦ New modules and their responsibilities
+◦ Any behavior changes or bug fixes
+4. Instructions for how to test: 
+◦ Which routes/pages to open
+◦ Which flows to exercise (connect, shield, transfer, unshield, echo)
+5. A recommendation on whether to merge this to main now or do additional review.
+
+CONSTRAINTS
+
+• Do not introduce new dependencies without asking me.
+• Do not change deployment config (vercel.json, next.config.js) unless strictly necessary.
+• Preserve existing functionality; this is a refactor + documentation upgrade, not a feature rewrite.
+• Keep changes focused and minimal; prefer small, clear improvements over large, risky rewrites.
+
+Start by:
+1. Confirming you understand the plan.
+2. Creating the isolated working copy (branch/sandbox/fork).
+3. Implementing the tasks in order, asking me when you propose large structural changes.
