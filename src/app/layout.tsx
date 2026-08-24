@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Syne, Satoshi, Space_Mono } from 'next/font/google'
+import { Syne, Plus_Jakarta_Sans, Space_Mono } from 'next/font/google'
 import './globals.css'
 
 const syne = Syne({
@@ -9,10 +9,10 @@ const syne = Syne({
   display: 'swap',
 })
 
-const satoshi = Satoshi({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-satoshi',
+  variable: '--font-plus-jakarta-sans',
   display: 'swap',
 })
 
@@ -36,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${syne.variable} ${satoshi.variable} ${spaceMono.variable}`}
+      className={`${syne.variable} ${plusJakartaSans.variable} ${spaceMono.variable}`}
       suppressHydrationWarning
     >
       <body>{children}</body>

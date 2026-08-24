@@ -1,5 +1,5 @@
 /* Hallmark · macrostructure: Workbench · tone: technical · theme: Cobalt (precision engineering)
- * paper: cool light · display: Syne (geometric distinctive) · body: Satoshi (premium) · mono: Space Mono (technical)
+ * paper: cool light · display: Syne (geometric distinctive) · body: Plus Jakarta Sans (premium) · mono: Space Mono (technical)
  * accent: electric cobalt oklch(58% 0.20 256)
  */
 
@@ -24,7 +24,7 @@
   --color-conditional: oklch(48% 0.1 85);
 
   --font-display: var(--font-syne), "Syne", system-ui, sans-serif;
-  --font-body: var(--font-satoshi), "Satoshi", system-ui, sans-serif;
+  --font-body: var(--font-plus-jakarta-sans), "Plus Jakarta Sans", system-ui, sans-serif;
   --font-mono-ui: var(--font-space-mono), "Space Mono", ui-monospace, monospace;
 
   --space-xs: 4px;
