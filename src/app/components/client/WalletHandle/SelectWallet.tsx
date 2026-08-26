@@ -77,8 +77,8 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     // Add timeout to requestAccounts to prevent hanging
     const result = await Promise.race([
       walletV6.requestAccounts(selectedWallet),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Wallet connection timeout")), 15000))
-    ]) as any;
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Wallet connection timeout")), 15000))
+    ]);
 
     if (typeof result == "string") {
       console.log("This Wallet is not compatible.");
@@ -95,7 +95,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
         .then((res: any) =>
           (res as WALLET_API.Permission[]).includes(WALLET_API.Permission.ACCOUNTS)
         ),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Permissions check timeout")), 10000))
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Permissions check timeout")), 10000))
     ]);
     setConnected(isConnectedWallet); // zustand
 
@@ -103,7 +103,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     if (isConnectedWallet) {
       const chainId = await Promise.race([
         walletV6.requestChainId(selectedWallet) as Promise<string>,
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Chain ID request timeout")), 10000))
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Chain ID request timeout")), 10000))
       ]);
       setChain(chainId);
       const detected = providerIndexForChainId(chainId);
@@ -119,7 +119,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
         myFrontendProviders[providerIndex],
         selectedWallet
       ),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("WalletAccount connection timeout")), 15000))
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("WalletAccount connection timeout")), 15000))
     ]);
     setMyWalletAccount(myWA);
     console.log("WalletAccount created=", myWA);

@@ -8,13 +8,13 @@ import { type WalletWithStarknetFeatures } from "@starknet-io/get-starknet-walle
 
 export interface WalletState {
     StarknetWalletObject: WalletWithStarknetFeatures | undefined,
-    setMyStarknetWalletObject: (wallet: WalletWithStarknetFeatures) => void,
+    setMyStarknetWalletObject: (wallet: WalletWithStarknetFeatures | undefined) => void,
     address: string,
     setAddressAccount: (address: string) => void,
     chain: string,
     setChain: (chain: string) => void,
     myWalletAccount: WalletAccountV6|undefined;
-    setMyWalletAccount: (myWAccount:WalletAccountV6)=>void;
+    setMyWalletAccount: (myWAccount: WalletAccountV6 | undefined) => void;
     account: AccountInterface | undefined,
     setAccount: (account: AccountInterface) => void,
     provider: ProviderInterface | undefined,
@@ -33,13 +33,13 @@ export interface WalletState {
 
 export const useStoreWallet = create<WalletState>()(set => ({
     StarknetWalletObject: undefined,
-    setMyStarknetWalletObject: (wallet: WalletWithStarknetFeatures) => { set(state => ({ StarknetWalletObject: wallet })) },
+    setMyStarknetWalletObject: (wallet: WalletWithStarknetFeatures | undefined) => { set(state => ({ StarknetWalletObject: wallet })) },
     address: "",
     setAddressAccount: (address: string) => { set(state => ({ address })) },
     chain: "",
     setChain: (chain: string) => { set(state => ({ chain: chain })) },
     myWalletAccount: undefined,
-    setMyWalletAccount: (myWAccount: WalletAccountV6) => { set(state => ({ myWalletAccount: myWAccount })) },
+    setMyWalletAccount: (myWAccount: WalletAccountV6 | undefined) => { set(state => ({ myWalletAccount: myWAccount })) },
     account: undefined,
     setAccount: (account: AccountInterface) => { set(state => ({ account })) },
     provider: undefined,
