@@ -309,9 +309,12 @@ export default function WalletAccountV6Tag() {
     } catch (error: any) {
       const msg = error?.message ?? error?.toString?.() ?? String(error);
       const timedOut = /timeout/i.test(msg);
+      const userRejected = /user rejected/i.test(msg) || /user cancelled/i.test(msg) || /denied/i.test(msg);
       setResult(
         errorResult(
-          timedOut
+          userRejected
+            ? "Transaction rejected in wallet"
+            : timedOut
             ? `${msg}\n\nSTRK20 proof generation can take 1-3 minutes. Check Ready and Voyager | the transaction may still have succeeded.`
             : msg
         )
@@ -464,6 +467,9 @@ export default function WalletAccountV6Tag() {
     setPendingRun(null);
     try {
       await run();
+    } catch (error: any) {
+      // If transaction was rejected or failed, ensure error is shown
+      console.error("Transaction failed in preview confirm:", error);
     } finally {
       setConfirmingPreview(false);
     }
