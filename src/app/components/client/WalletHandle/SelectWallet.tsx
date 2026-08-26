@@ -74,10 +74,15 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       ? myFrontendProviderIndex
       : 2) as Strk20NetworkIndex;
 
-    const result = await walletV6.requestAccounts(selectedWallet);
+    // Add timeout to requestAccounts to prevent hanging
+    const result = await Promise.race([
+      walletV6.requestAccounts(selectedWallet),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Wallet connection timeout")), 15000))
+    ]) as any;
+
     if (typeof result == "string") {
       console.log("This Wallet is not compatible.");
-      return;
+      throw new Error("Wallet is not compatible");
     }
     console.log("Current account addr =", result);
     if (Array.isArray(result)) {
@@ -85,16 +90,21 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       setAddressAccount(addr); // zustand
     }
 
-    const isConnectedWallet: boolean = await walletV6
-      .getPermissions(selectedWallet)
-      .then((res: any) =>
-        (res as WALLET_API.Permission[]).includes(WALLET_API.Permission.ACCOUNTS)
-      );
+    const isConnectedWallet: boolean = await Promise.race([
+      walletV6.getPermissions(selectedWallet)
+        .then((res: any) =>
+          (res as WALLET_API.Permission[]).includes(WALLET_API.Permission.ACCOUNTS)
+        ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Permissions check timeout")), 10000))
+    ]);
     setConnected(isConnectedWallet); // zustand
 
     let providerIndex = preferredIndex;
     if (isConnectedWallet) {
-      const chainId = (await walletV6.requestChainId(selectedWallet)) as string;
+      const chainId = await Promise.race([
+        walletV6.requestChainId(selectedWallet) as Promise<string>,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Chain ID request timeout")), 10000))
+      ]);
       setChain(chainId);
       const detected = providerIndexForChainId(chainId);
       if (detected !== null) {
@@ -104,10 +114,13 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       console.log("Provider index:", providerIndex, "wallet chainId:", chainId);
     }
 
-    const myWA = await WalletAccountV6.connect(
-      myFrontendProviders[providerIndex],
-      selectedWallet
-    );
+    const myWA = await Promise.race([
+      WalletAccountV6.connect(
+        myFrontendProviders[providerIndex],
+        selectedWallet
+      ),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("WalletAccount connection timeout")), 15000))
+    ]);
     setMyWalletAccount(myWA);
     console.log("WalletAccount created=", myWA);
 
@@ -135,6 +148,12 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       setPickerOpen(false);
     } catch (err: any) {
       console.log("Wallet connection failed.\n", err);
+      // Clean up state on failure
+      setMyWallet(undefined);
+      setConnected(false);
+      setAddressAccount("");
+      setChain("");
+      setMyWalletAccount(undefined);
       setError(err?.message ?? "Wallet connection failed.");
     } finally {
       setConnecting(false);

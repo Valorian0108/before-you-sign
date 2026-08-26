@@ -470,6 +470,7 @@ export default function WalletAccountV6Tag() {
     } catch (error: any) {
       // If transaction was rejected or failed, ensure error is shown
       console.error("Transaction failed in preview confirm:", error);
+      // Don't re-open preview on error - let the error card show in the action panel
     } finally {
       setConfirmingPreview(false);
     }
